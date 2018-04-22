@@ -52,3 +52,33 @@ exports.assignUid = functions.database.ref('/curr_uid').onWrite((change,context)
         }
     });
 });
+
+
+exports.sendAlert = functions.database.ref('/sih/{booking_id}/{bag_id}/Status/{check_point}/status').onWrite((change,context) => {
+
+    const booking_id = context.params.booking_id;
+    const bag_id = context.params.bag_id;
+    const check_point = context.params.check_point;
+    var bag_num = parseInt(bag_id);
+    bag_num++;
+    if(change.after.val() == true) {
+
+        console.log(`Bag number ${bag_id} for booking id ${booking_id} passed stage ${check_point}`);
+        const tokenFinder = admin.database().ref(`/sih/${booking_id}/device_token`).once('value');
+        return tokenFinder.then(tokenRes => {
+            const deviceToken = tokenRes.val();
+            console.log(deviceToken);
+            const payload = {
+              notification : {
+                  title : 'Hey there..' ,
+                  body : `Your bag ${bag_num} just crossed stage ${check_point}` ,
+                  sound : 'default',
+                  icon : "https://firebasestorage.googleapis.com/v0/b/testing-200101.appspot.com/o/aeroplane.png?alt=media&token=9ea8c229-8ba0-4d7b-b43b-4f9de2a1f602"
+              }
+            };
+            admin.messaging().sendToDevice(deviceToken,payload).then(response => {
+                return console.log(payload);
+            });
+        });
+    }
+});
